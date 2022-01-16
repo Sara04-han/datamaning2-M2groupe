@@ -5,25 +5,57 @@ def TB(df_marks,target,cont,disc,H,Pd):
     sort = df_marks.sort_values(by=Nomcol[Pd])
     df=sort.drop_duplicates(subset=[Nomcol[Pd]])
     value=marks_list = df[Nomcol[Pd]].tolist()
-    sort = df_marks.sort_values(by=Nomcol[1])
-    df=sort.drop_duplicates(subset=[Nomcol[1]])
-    value1=marks_list = df[Nomcol[1]].tolist()
+    sort = df_marks.sort_values(by=Nomcol[11])
+    df=sort.drop_duplicates(subset=[Nomcol[11]])
+    value1=marks_list = df[Nomcol[11]].tolist()
     N=list()
+    pno=list()
+    pyes=list()
+    Entropy=list()
     for i in range(len(value)):
         for j in range(len(value1)):
             N.append(0)
+            pno.append(0)
+            pyes.append(0)
     for j in range(len(value)):
         for i in range(303):
+            pnot = 0
+            pyest = 0
             if (sort.iat[i,Pd]==value[j]):
                 for y in range(len(value1)):
-                    if (sort.iat[i,1]==value1[y]):
-                        N[j*2+y]=N[j*2+y]+1
-                        if (sort.iat[i,target]==0):
-                            pno=pno+1
+                    if (sort.iat[i,11]==value1[y]):
+                        N[j*len(value1)+y]=N[j*len(value1)+y]+1
                         if (sort.iat[i,target]==1):
-                            pyes=pyes+1
+                            pyes[j*len(value1)+y]=pyes[j*len(value1)+y]+1
+                        if (sort.iat[i, target]==0):
+                            pno[j*len(value1)+y]=pno[j*len(value1)+y]+1
+    Gaintest=list()
+    N0=list()
+    for i in range(int(len(N)/len(value1))):
+        C0=0
+        for j in range(len(value1)):
+            C0=C0+N[j+i*len(value1)]
+        N0.append(C0)
+    for i in range(len(N)):
+        if (pyes[i] == 0 or pno[i] == 0):
+            Entropy.append(0)
+        else:
+            Entropy.append(-pno[i]/N[i]*np.log2(pno[i]/N[i])-pyes[i]/N[i]*np.log2(pyes[i]/N[i]))
 
-
+    print(pyes,pno)
+    for i in range(1,len(value)+1):
+        Test=N[(i-1)*len(value1):(i)*len(value1)]
+        Gain=H
+        Split=0
+        for j in range(len(value1)):
+            Gain=Gain-Test[j]/N0[i-1]*Entropy[j+(i-1)*(len(value1))]
+            if(Test[j]==0 or N0[i-1]-Test[j]==0):
+                Split=Split+2000
+            else:
+                Split=Split-Test[j]/N0[i-1]*np.log2(Test[j]/N0[i-1])-(N0[i-1]-Test[j])/N0[i-1]*np.log2((N0[i-1]-Test[j])/N0[i-1])
+        print(Split)
+    print(N)
+    print(N0)
 
 def GR(df_marks,target,cont,disc,H):
     ##disccontinue
