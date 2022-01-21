@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
-def TB(df_marks,target,cont,disc,H,Pd):
+def TB(df_marks,target,cont,disc,H,Pd,Max):
     Nomcol=df_marks.columns
     sort = df_marks.sort_values(by=Nomcol[Pd])
     df=sort.drop_duplicates(subset=[Nomcol[Pd]])
     value=marks_list = df[Nomcol[Pd]].tolist()
-    sort = df_marks.sort_values(by=Nomcol[11])
-    df=sort.drop_duplicates(subset=[Nomcol[11]])
-    value1=marks_list = df[Nomcol[11]].tolist()
+    sort = df_marks.sort_values(by=Nomcol[9])
+    df=sort.drop_duplicates(subset=[Nomcol[9]])
+    value1=marks_list = df[Nomcol[9]].tolist()
     N=list()
     pno=list()
     pyes=list()
@@ -23,7 +23,7 @@ def TB(df_marks,target,cont,disc,H,Pd):
             pyest = 0
             if (sort.iat[i,Pd]==value[j]):
                 for y in range(len(value1)):
-                    if (sort.iat[i,11]==value1[y]):
+                    if (sort.iat[i,9]==value1[y]):
                         N[j*len(value1)+y]=N[j*len(value1)+y]+1
                         if (sort.iat[i,target]==1):
                             pyes[j*len(value1)+y]=pyes[j*len(value1)+y]+1
@@ -42,20 +42,24 @@ def TB(df_marks,target,cont,disc,H,Pd):
         else:
             Entropy.append(-pno[i]/N[i]*np.log2(pno[i]/N[i])-pyes[i]/N[i]*np.log2(pyes[i]/N[i]))
 
-    print(pyes,pno)
+    GR=list()
     for i in range(1,len(value)+1):
         Test=N[(i-1)*len(value1):(i)*len(value1)]
         Gain=H
         Split=0
         for j in range(len(value1)):
             Gain=Gain-Test[j]/N0[i-1]*Entropy[j+(i-1)*(len(value1))]
-            if(Test[j]==0 or N0[i-1]-Test[j]==0):
-                Split=Split+2000
-            else:
+            if(N0[i-1]-Test[j]==0):
+                Split=Split-Test[j]/N0[i-1]*np.log2(Test[j]/N0[i-1])
+            elif (Test[j]==0):
+                Split=Split-(N0[i-1]-Test[j])/N0[i-1]*np.log2((N0[i-1]-Test[j])/N0[i-1])
+            else :
                 Split=Split-Test[j]/N0[i-1]*np.log2(Test[j]/N0[i-1])-(N0[i-1]-Test[j])/N0[i-1]*np.log2((N0[i-1]-Test[j])/N0[i-1])
-        print(Split)
-    print(N)
-    print(N0)
+        if (Split==0):
+            GR.append(0)
+        else:
+            GR.append(Gain/Split)
+    ##
 
 def GR(df_marks,target,cont,disc,H):
     ##disccontinue
@@ -138,12 +142,12 @@ def GR(df_marks,target,cont,disc,H):
             else:
                 Splitinfo.append(-(Ninf/303)*np.log2(Ninf/303)-(Nsupp/303)*np.log2(Nsupp/303))
             GR.append(Gain[y]/Splitinfo[y])
-        GRfinal.append(max(GR))
-        MxCont[j]=mincol+GR.index(max(GR))*pas
+        GRfinal.append(max(GR[1:]))
+        MxCont[j]=mincol+GR.index(max(GR[1:]))*pas
     if (GRfinal.index(max(GRfinal))+1<=len(disc)):
-        return disc[GRfinal.index(max(GRfinal))], 'nan'
+        return disc[GRfinal.index(max(GRfinal))], 'nan', MxCont
     else:
-        return cont[len(GRfinal)-GRfinal.index(max(GRfinal))], MxCont[len(GRfinal)-GRfinal.index(max(GRfinal))]
+        return cont[len(GRfinal)-GRfinal.index(max(GRfinal))], MxCont[len(GRfinal)-GRfinal.index(max(GRfinal))], MxCont
 
 def entropieH(df_marks,target):
     Nomcol=df_marks.columns
@@ -176,7 +180,6 @@ def main():
     cont=[0,3,4,7,9]
     disc=[1,2,5,6,10,11,12]
     H=entropieH(df_marks,target)
-    Pd,Mx=GR(df_marks, target, cont, disc,H)
-    print(Pd,Mx)
-    TB(df_marks, target, cont, disc, H, Pd)
+    Pd,Mx,Max=GR(df_marks, target, cont, disc,H)
+    TB(df_marks, target, cont, disc, H, Pd,Max)
 main()
