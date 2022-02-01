@@ -1,67 +1,7 @@
 import pandas as pd
 import numpy as np
-def TB(df_marks,target,cont,disc,H,Pd,Max):
-    Nomcol=df_marks.columns
-    sort = df_marks.sort_values(by=Nomcol[Pd])
-    df=sort.drop_duplicates(subset=[Nomcol[Pd]])
-    value=marks_list = df[Nomcol[Pd]].tolist()
-    sort = df_marks.sort_values(by=Nomcol[9])
-    df=sort.drop_duplicates(subset=[Nomcol[9]])
-    value1=marks_list = df[Nomcol[9]].tolist()
-    N=list()
-    pno=list()
-    pyes=list()
-    Entropy=list()
-    for i in range(len(value)):
-        for j in range(len(value1)):
-            N.append(0)
-            pno.append(0)
-            pyes.append(0)
-    for j in range(len(value)):
-        for i in range(303):
-            pnot = 0
-            pyest = 0
-            if (sort.iat[i,Pd]==value[j]):
-                for y in range(len(value1)):
-                    if (sort.iat[i,9]==value1[y]):
-                        N[j*len(value1)+y]=N[j*len(value1)+y]+1
-                        if (sort.iat[i,target]==1):
-                            pyes[j*len(value1)+y]=pyes[j*len(value1)+y]+1
-                        if (sort.iat[i, target]==0):
-                            pno[j*len(value1)+y]=pno[j*len(value1)+y]+1
-    Gaintest=list()
-    N0=list()
-    for i in range(int(len(N)/len(value1))):
-        C0=0
-        for j in range(len(value1)):
-            C0=C0+N[j+i*len(value1)]
-        N0.append(C0)
-    for i in range(len(N)):
-        if (pyes[i] == 0 or pno[i] == 0):
-            Entropy.append(0)
-        else:
-            Entropy.append(-pno[i]/N[i]*np.log2(pno[i]/N[i])-pyes[i]/N[i]*np.log2(pyes[i]/N[i]))
 
-    GR=list()
-    for i in range(1,len(value)+1):
-        Test=N[(i-1)*len(value1):(i)*len(value1)]
-        Gain=H
-        Split=0
-        for j in range(len(value1)):
-            Gain=Gain-Test[j]/N0[i-1]*Entropy[j+(i-1)*(len(value1))]
-            if(N0[i-1]-Test[j]==0):
-                Split=Split-Test[j]/N0[i-1]*np.log2(Test[j]/N0[i-1])
-            elif (Test[j]==0):
-                Split=Split-(N0[i-1]-Test[j])/N0[i-1]*np.log2((N0[i-1]-Test[j])/N0[i-1])
-            else :
-                Split=Split-Test[j]/N0[i-1]*np.log2(Test[j]/N0[i-1])-(N0[i-1]-Test[j])/N0[i-1]*np.log2((N0[i-1]-Test[j])/N0[i-1])
-        if (Split==0):
-            GR.append(0)
-        else:
-            GR.append(Gain/Split)
-    ##
-
-def GR(df_marks,target,cont,disc,H):
+def GR1(df_marks,target,cont,disc,H):
     ##disccontinue
     Nomcol=df_marks.columns
     sort = df_marks.sort_values(by=Nomcol[target])
@@ -145,11 +85,104 @@ def GR(df_marks,target,cont,disc,H):
         GRfinal.append(max(GR[1:]))
         MxCont[j]=mincol+GR.index(max(GR[1:]))*pas
     if (GRfinal.index(max(GRfinal))+1<=len(disc)):
-        return disc[GRfinal.index(max(GRfinal))], 'nan', MxCont
+        return disc[GRfinal.index(max(GRfinal))], 'nan'
     else:
-        return cont[len(GRfinal)-GRfinal.index(max(GRfinal))], MxCont[len(GRfinal)-GRfinal.index(max(GRfinal))], MxCont
+        return cont[len(GRfinal)-GRfinal.index(max(GRfinal))], MxCont[len(GRfinal)-GRfinal.index(max(GRfinal))]
 
+def GR(df,disc,cont,target,H):
+    # Fonction du calcul du gain Ratio
+    #### Calcul DisContinue
+    Nomcol=df.columns
+    sort = df.sort_values(by=Nomcol[target])
+    nbrcont = len(disc)
+    GRfinal = list()
+    value = []
+
+    for j in range(nbrcont):
+        rat = sort.groupby([Nomcol[disc[j]], Nomcol[target]]).size().unstack(fill_value=0)
+        h = int(rat.shape[0])
+        rat = pd.DataFrame(rat)
+        value.append(rat.index.name)
+        Entrop = list()
+        listN = list()
+        value1 = list()
+        for i in range(h):
+            Nno = rat.iat[i, 0]
+            Nyes = rat.iat[i, 1]
+            N = Nyes + Nno
+            pno = Nno / N
+            pyes = Nyes / N
+            if pno == 0 or pyes == 0:
+                en = 0
+            else:
+                en = -pno * np.log2(pno) - pyes * np.log2(pyes)
+                value1.append(rat.index[i])
+            Entrop.append(en)
+            listN.append(N)
+        value.append(value1)
+        Gai = H
+        Splitinf = 0
+        Taille_Tab = int(len(df))
+        for i in range(h):
+            Gai = Gai - (listN[i] / Taille_Tab) * Entrop[i]
+            Splitinf = Splitinf - (listN[i] / Taille_Tab) * np.log2(listN[i] / Taille_Tab)
+        if (Splitinf == 0):
+            GRfinal.append(0)
+        else:
+            GRfinal.append(Gai / Splitinf)
+    col_max=disc[GRfinal.index(max(GRfinal))]
+    for i in range(len(value)):
+        if Nomcol[col_max] == value[i]:
+            index=value[i+1]
+    if sum(GRfinal)== 0 or len(index)==0:
+        print('FINI')
+    else:
+        if (GRfinal.index(max(GRfinal)) + 1 <= len(disc)):
+            col_max = disc[GRfinal.index(max(GRfinal))]
+            print(Nomcol[col_max], index)
+            DivTab(df,col_max,index,0)
+        else:
+            index=[0,0]
+            col_max = cont[len(GRfinal)-GRfinal.index(max(GRfinal))]
+            print(Nomcol[col_max], index,col_max,MxCont[len(GRfinal)-GRfinal.index(max(GRfinal))])
+            print(df['thalach'])
+            DivTab(df,col_max,index,MxCont[len(GRfinal)-GRfinal.index(max(GRfinal))])
+def DivTab(data,Value,index,Max):
+    #Fonction de division des tableau
+    disc=[1,2,5,6,8,10,11,12]
+    cont=[0,3,4,7,9]
+    Nomcol=data.columns
+    Result=list()
+    target = 13
+    H=entropieH(data,target)
+    if(Max==0):
+        for i in range(len(index)):
+            df = pd.DataFrame(columns=Nomcol)
+            test = data[Nomcol[Value]] == index[i]
+            h = 0
+            for i in range(len(data)):
+                if test[i] == True:
+                    df.loc[h] = data.loc[i]
+                    h = h + 1
+            Result.append(df)
+    else:
+        df=pd.DataFrame(columns=Nomcol)
+        df1=pd.DataFrame(columns=Nomcol)
+        h = 0
+        h1 = 0
+        for i in range(len(data)):
+            if data.iat[i,Value] < Max :
+                df.loc[h] = data.loc[i]
+                h = h+1
+            else:
+                df1.loc[h1] = data.loc[i]
+                h1 = h1+1
+        Result.append(df)
+        Result.append(df1)
+    #print(Result)
+    GR(Result[0],disc,cont,target,h)
 def entropieH(df_marks,target):
+    #Fonction Calcul de l'entropie
     Nomcol=df_marks.columns
     sort = df_marks.sort_values(by=Nomcol[target])
     rat = sort.groupby(Nomcol[target]).size().div(len(sort))
@@ -160,26 +193,17 @@ def entropieH(df_marks,target):
     H = 0
     for i in range(ligne):
         H = H + (rat.iat[i, 0] * lograt.iat[i, 0]) * (-1)
+    #print(H)
     return H
-def typecolone():
-    print('Quelle est le numéro de la  colone target')
-    target=input()
-    target=int(target)
-    print('Quelle est le numéro de la colone avec des valeurs discontinues')
-    disc=input().split()
-    disc = list(map(int, disc))
-    print('Quelle est le numéro de la colone avec des valeurs continues')
-    cont=input().split()
-    cont = list(map(int, cont))
-    return target,cont, disc
+
 def main():
     data = pd.read_csv('dataset.csv')
-    df_marks = pd.DataFrame(data)
-    #target, cont, disc=typecolone()
+    data = pd.DataFrame(data)
     target=13
     cont=[0,3,4,7,9]
-    disc=[1,2,5,6,10,11,12]
-    H=entropieH(df_marks,target)
-    Pd,Mx,Max=GR(df_marks, target, cont, disc,H)
-    TB(df_marks, target, cont, disc, H, Pd,Max)
+    disc=[1,2,5,6,8,10,11,12]
+    H=entropieH(data,target)
+    GRRESULT,maxGRRESULT=GR1(data,target,cont,disc,H)
+    index=[1,0,2,3]
+    child=DivTab(data,GRRESULT,index,0)
 main()
